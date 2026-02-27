@@ -1,0 +1,21 @@
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
+}
+
+.bg-gradient-brand {
+    background: linear-gradient(135deg, rgba(196, 147, 74, 0.05) 0%, rgba(196, 147, 74, 0.15) 100%);
+}
