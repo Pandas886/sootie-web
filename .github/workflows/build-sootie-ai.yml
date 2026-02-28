@@ -52,12 +52,15 @@ jobs:
         include:
           - os: macos-latest
             arch: x64
+            dbcli_target: macos-x64
             script: "npm run dist:mac:x64"
           - os: macos-latest
             arch: arm64
+            dbcli_target: macos-arm64
             script: "npm run dist:mac:arm64"
           - os: windows-latest
             arch: x64
+            dbcli_target: windows-x64
             script: "npm run dist:win"
 
     steps:
@@ -77,6 +80,9 @@ jobs:
 
       - name: Prepare bundled runtime
         run: npm run setup:mingit
+
+      - name: Prepare bundled db-cli
+        run: npm run setup:dbcli -- --required --target ${{ matrix.dbcli_target }} --release latest
 
       - name: Build Application
         run: ${{ matrix.script }} -- --publish never
