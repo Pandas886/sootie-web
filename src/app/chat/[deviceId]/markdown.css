@@ -2,8 +2,6 @@
 .markdown-body {
     word-break: break-word;
     line-height: 1.5;
-    white-space: normal !important;
-    /* !! 关键 !! 覆盖 ChatUI Bubble 默认的 pre-wrap，防止多重换行 */
 }
 
 /* 全局边距重置，统一成更紧凑的风格 */
@@ -11,7 +9,6 @@
 .markdown-body ul,
 .markdown-body ol,
 .markdown-body blockquote,
-.markdown-body pre,
 .markdown-body table {
     margin-top: 0;
     margin-bottom: 0.5em;
@@ -41,16 +38,19 @@
     padding: 16px;
     margin-top: 0.5em;
     margin-bottom: 0.5em;
+    white-space: pre !important;
+    word-break: normal;
 }
 
 .markdown-body pre code {
     background-color: transparent;
     border: 0;
-    display: inline;
+    display: block;
     line-height: inherit;
     margin: 0;
     overflow: visible;
     padding: 0;
+    white-space: inherit;
     word-wrap: normal;
 }
 
