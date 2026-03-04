@@ -61,6 +61,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "Z-KhKVyMyA4mq5gz0dUxsHKz3x8op33eP12OjzJK_jI",
+    other: {
+      "baidu-site-verification": "codeva-bSxPVm419Q",
+    },
   },
   category: "technology",
 };
