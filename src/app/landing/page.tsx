@@ -1,12 +1,109 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
+import type { Metadata } from "next";
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Download, Monitor, Cloud, Zap, Shield } from 'lucide-react';
 import './landing.css';
+import { absoluteUrl, siteConfig } from "@/lib/seo";
+
+export const metadata: Metadata = {
+    title: "Sootie Cloud 官网",
+    description:
+        "Sootie Cloud 提供 7×24 小时桌面级 AI 助手体验，支持本地 AI Agent 云端管控、远程任务执行与多模型能力接入。",
+    alternates: {
+        canonical: "/landing",
+    },
+    openGraph: {
+        url: absoluteUrl("/landing"),
+        title: "Sootie Cloud 官网",
+        description:
+            "连接你的本地 AI Agent 到云端，随时随地管理设备、对话和任务。",
+        images: [
+            {
+                url: absoluteUrl(siteConfig.socialImage),
+                width: 1200,
+                height: 630,
+                alt: "Sootie Cloud",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Sootie Cloud 官网",
+        description:
+            "连接你的本地 AI Agent 到云端，随时随地管理设备、对话和任务。",
+        images: [absoluteUrl(siteConfig.socialImage)],
+    },
+};
+
+const softwareSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Sootie Cloud",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web, macOS, Windows",
+    description:
+        "Sootie Cloud 是用于远程管理本地 AI Agent 的云端控制台，支持 7×24 小时任务协同与多模型能力接入。",
+    url: absoluteUrl("/landing"),
+    image: absoluteUrl(siteConfig.socialImage),
+    sameAs: [siteConfig.githubUrl],
+    offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+    },
+    publisher: {
+        "@type": "Organization",
+        name: "SootieAI",
+        url: absoluteUrl("/"),
+    },
+};
+
+const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+        {
+            "@type": "Question",
+            name: "Sootie Cloud 是什么？",
+            acceptedAnswer: {
+                "@type": "Answer",
+                text: "Sootie Cloud 是连接本地 AI Agent 与云端的管理控制台，可用于远程下发任务、管理设备状态和查看 AI 对话记录。",
+            },
+        },
+        {
+            "@type": "Question",
+            name: "Sootie 是否支持 7×24 小时运行？",
+            acceptedAnswer: {
+                "@type": "Answer",
+                text: "支持。Sootie 以桌面应用形态在本地常驻运行，结合云端控制台可提供 7×24 小时在线可达能力。",
+            },
+        },
+        {
+            "@type": "Question",
+            name: "Sootie 可以接入哪些模型？",
+            acceptedAnswer: {
+                "@type": "Answer",
+                text: "Sootie 支持接入主流大语言模型，例如 Claude、Gemini、GPT 等，以满足不同任务的推理和生成需求。",
+            },
+        },
+    ],
+};
 
 export default function LandingPage() {
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-brand/20 selection:text-brand flex flex-col font-sans">
+            <Script
+                id="schema-software-application"
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+            />
+            <Script
+                id="schema-faq-page"
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             {/* 顶部导航 */}
             <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
@@ -114,6 +211,48 @@ export default function LandingPage() {
                             <p className="text-muted-foreground leading-relaxed">
                                 作为本地应用运行，确保你的核心数据和执行权限掌握在自己手中，安心使用各项智能功能。
                             </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="container mx-auto max-w-6xl px-4 mt-20 space-y-8">
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-center">常见问题</h2>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <article className="rounded-2xl border border-border/60 bg-card p-6">
+                            <h3 className="text-lg font-semibold mb-3">Sootie Cloud 是什么？</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                Sootie Cloud 是连接本地 AI Agent 与云端的管理控制台，用于远程下发任务、查看设备状态与统一管理 AI 工作流。
+                            </p>
+                        </article>
+                        <article className="rounded-2xl border border-border/60 bg-card p-6">
+                            <h3 className="text-lg font-semibold mb-3">是否支持 7×24 小时运行？</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                支持。Sootie 以桌面应用形态常驻本地设备，结合云端控制台，提供全天候在线管理能力。
+                            </p>
+                        </article>
+                        <article className="rounded-2xl border border-border/60 bg-card p-6">
+                            <h3 className="text-lg font-semibold mb-3">支持哪些模型？</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                可以接入 Claude、Gemini、GPT 等主流模型，按任务场景灵活选择能力与成本。
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section className="container mx-auto max-w-6xl px-4 mt-16">
+                    <div className="rounded-3xl border border-border/60 bg-card p-8 md:p-10">
+                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">深入阅读</h2>
+                        <p className="mt-3 text-muted-foreground">想系统了解 Sootie 的部署、远程控制与多模型策略，可以从以下指南开始。</p>
+                        <div className="mt-6 grid gap-3 md:grid-cols-3">
+                            <Link href="/guides/local-ai-agent" className="rounded-xl border border-border/60 px-4 py-3 hover:bg-secondary/60 transition-colors">
+                                本地 AI Agent 7×24 运行指南
+                            </Link>
+                            <Link href="/guides/remote-control" className="rounded-xl border border-border/60 px-4 py-3 hover:bg-secondary/60 transition-colors">
+                                远程控制与设备协同指南
+                            </Link>
+                            <Link href="/guides/model-integration" className="rounded-xl border border-border/60 px-4 py-3 hover:bg-secondary/60 transition-colors">
+                                多模型接入策略与选型
+                            </Link>
                         </div>
                     </div>
                 </section>

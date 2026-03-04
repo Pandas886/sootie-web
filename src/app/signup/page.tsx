@@ -1,8 +1,27 @@
 import { signup } from "./actions";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Cpu, MessageSquare } from "lucide-react";
-import Image from "next/image";
 import { SubmitButton } from "@/components/SubmitButton";
+import type { Metadata } from "next";
+import { absoluteUrl, siteConfig } from "@/lib/seo";
+
+export const metadata: Metadata = {
+    title: "注册",
+    description: "注册 Sootie Cloud 账号，快速连接本地 AI Agent 并开启远程智能协同。",
+    alternates: {
+        canonical: "/signup",
+    },
+    openGraph: {
+        url: absoluteUrl("/signup"),
+        title: "注册 Sootie Cloud",
+        description: "创建账号后即可接入 Sootie 的云端管理与 AI 自动化能力。",
+        images: [absoluteUrl(siteConfig.socialImage)],
+    },
+    robots: {
+        index: false,
+        follow: false,
+    },
+};
 
 export default async function SignupPage({
     searchParams,

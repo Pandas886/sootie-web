@@ -1,8 +1,27 @@
 import { login } from "./actions";
 import Link from "next/link";
 import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
-import Image from "next/image";
 import { SubmitButton } from "@/components/SubmitButton";
+import type { Metadata } from "next";
+import { absoluteUrl, siteConfig } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "登录",
+  description: "登录 Sootie Cloud 云端账号，远程连接与管理你的本地 AI Agent。",
+  alternates: {
+    canonical: "/login",
+  },
+  openGraph: {
+    url: absoluteUrl("/login"),
+    title: "登录 Sootie Cloud",
+    description: "登录后可远程管理 Sootie 设备、任务与 AI 对话。",
+    images: [absoluteUrl(siteConfig.socialImage)],
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function LoginPage({
   searchParams,

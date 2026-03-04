@@ -2,6 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    const publicExactPaths = new Set([
+        '/',
+        '/robots.txt',
+        '/sitemap.xml',
+        '/manifest.webmanifest',
+        '/llms.txt',
+        '/icon',
+    ])
+
+    const publicPrefixPaths = ['/login', '/signup', '/landing', '/guides']
+    const isPublicPath =
+        publicExactPaths.has(request.nextUrl.pathname) ||
+        publicPrefixPaths.some((path) => request.nextUrl.pathname.startsWith(path))
+
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -15,7 +29,7 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     supabaseResponse = NextResponse.next({
                         request,
                     })
@@ -31,13 +45,7 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/signup') &&
-        !request.nextUrl.pathname.startsWith('/landing') &&
-        request.nextUrl.pathname !== '/' // Let page.tsx handle root trajectory
-    ) {
+    if (!user && !isPublicPath) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
