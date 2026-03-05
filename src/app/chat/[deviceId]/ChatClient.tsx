@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import Chat, { Bubble, useMessages, MessageProps } from "@chatui/core";
 import { createClient } from "@/utils/supabase/client";
-import { ChevronLeft, MonitorSmartphone, Paperclip, X, FileImage, FileText, Send } from "lucide-react";
+import { ChevronLeft, MonitorSmartphone, Paperclip, X, FileImage, FileText, Send, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -67,8 +67,10 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isComposerMultiline, setIsComposerMultiline] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const sendingLockRef = useRef(false);
 
   // useMemo 确保 supabase 实例在组件生命周期内只创建一次
   const supabase = useMemo(() => createClient(), []);
@@ -272,10 +274,16 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
   };
 
   const submitMessage = async () => {
+    if (sendingLockRef.current) {
+      return;
+    }
     const text = inputValue.trim();
     if (!text && pendingFiles.length === 0) {
       return;
     }
+
+    sendingLockRef.current = true;
+    setIsSending(true);
 
     try {
       const uploadedAttachments = await uploadPendingFiles();
@@ -322,6 +330,9 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
     } catch (error) {
       console.error("Failed to upload/send message", error);
       setIsTyping(false);
+    } finally {
+      sendingLockRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -336,6 +347,9 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
   };
 
   const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (isSending) {
+      return;
+    }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void submitMessage();
@@ -445,7 +459,10 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
       </div>
 
       {/* 主聊天区域 */}
-      <div className="relative flex h-full flex-1 flex-col" style={{ background: "#F8F9FB" }}>
+      <div
+        className={`chat-main-shell relative flex h-full flex-1 flex-col${pendingFiles.length > 0 ? " has-pending" : ""}`}
+        style={{ background: "#F8F9FB" }}
+      >
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handlePickFiles} />
 
         <Chat
@@ -490,6 +507,7 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
                     <button
                       type="button"
                       className="chat-pending-remove"
+                      disabled={isSending}
                       onClick={(event) => {
                         event.stopPropagation();
                         removePendingFile(idx);
@@ -510,6 +528,7 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
                 className="chat-composer-attach"
                 onClick={() => fileInputRef.current?.click()}
                 title="添加附件"
+                disabled={isSending}
               >
                 <Paperclip className="h-4.5 w-4.5" />
               </button>
@@ -521,15 +540,16 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
                 onKeyDown={handleTextareaKeyDown}
                 placeholder={`给 ${deviceName} 上的 Sootie 发送指令...`}
                 rows={1}
+                disabled={isSending}
               />
               <button
                 type="button"
                 className="chat-composer-send"
                 onClick={() => void submitMessage()}
-                disabled={!inputValue.trim() && pendingFiles.length === 0}
-                title="发送"
+                disabled={isSending || (!inputValue.trim() && pendingFiles.length === 0)}
+                title={isSending ? "发送中" : "发送"}
               >
-                <Send className="h-4 w-4" />
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>
           </div>
