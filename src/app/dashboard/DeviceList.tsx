@@ -148,10 +148,33 @@ export function DeviceList({ initialDevices }: { initialDevices: DeviceKey[] }) 
         }
     }
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+    const copyToClipboard = async (text: string) => {
+        const fallbackCopy = (): boolean => {
+            const textarea = document.createElement('textarea')
+            textarea.value = text
+            textarea.setAttribute('readonly', '')
+            textarea.style.position = 'fixed'
+            textarea.style.left = '-9999px'
+            document.body.appendChild(textarea)
+            textarea.select()
+            const ok = document.execCommand('copy')
+            document.body.removeChild(textarea)
+            return ok
+        }
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text)
+            } else if (!fallbackCopy()) {
+                throw new Error('clipboard fallback failed')
+            }
+
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch (error) {
+            console.error('复制失败', error)
+            alert('复制失败，请手动复制')
+        }
     }
 
     const toggleKeyVisibility = (deviceId: string) => {
