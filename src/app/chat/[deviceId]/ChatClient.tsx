@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import Chat, { Bubble, useMessages, MessageProps } from "@chatui/core";
+import imageCompression from "browser-image-compression";
 import { createClient } from "@/utils/supabase/client";
 import { ChevronLeft, MonitorSmartphone, Paperclip, X, FileImage, FileText, Send, Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -14,6 +15,21 @@ const SESSION_ID = "default";
 const ATTACHMENTS_BUCKET = "im-attachments";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_FILES_PER_MESSAGE = 5;
+const MAX_IMAGE_UPLOAD_BYTES = Math.floor(3.5 * 1024 * 1024);
+const MAX_IMAGE_UPLOAD_MB = (MAX_IMAGE_UPLOAD_BYTES / (1024 * 1024)).toFixed(1);
+const MAX_IMAGE_DIMENSION = 1920;
+const IMAGE_OUTPUT_FORMAT = "image/webp";
+
+const replaceExtension = (name: string, extension: string): string =>
+  name.replace(/\.[^.]+$/, "") + extension;
+
+const toUserErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "附件处理失败，请稍后重试";
+};
 
 type StoredAttachment = {
   bucket: string;
@@ -60,11 +76,16 @@ const formatFileSize = (size: number): string => {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const logUploadDebug = (step: string, details: Record<string, unknown>) => {
+  console.info(`[ChatUpload] ${step}`, details);
+};
+
 export default function ChatClient({ userId, userEmail, deviceId, deviceName }: { userId: string; userEmail?: string; deviceId: string; deviceName: string }) {
   const userAvatar = userEmail ? `https://api.dicebear.com/9.x/lorelei/svg?seed=${userEmail}` : undefined;
   const { messages, appendMsg } = useMessages([]);
   const [, setIsTyping] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [composerError, setComposerError] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [isComposerMultiline, setIsComposerMultiline] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -223,6 +244,17 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
     const list = Array.from(event.target.files || []);
     if (list.length === 0) return;
 
+    logUploadDebug("files-selected", {
+      count: list.length,
+      files: list.map((file) => ({
+        name: file.name,
+        type: file.type,
+        sizeBytes: file.size,
+        sizeLabel: formatFileSize(file.size),
+      })),
+    });
+
+    setComposerError("");
     const merged = [...pendingFiles, ...list].slice(0, MAX_FILES_PER_MESSAGE);
     setPendingFiles(merged);
 
@@ -232,7 +264,79 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
   };
 
   const removePendingFile = (index: number) => {
+    setComposerError("");
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const prepareFileForUpload = async (file: File): Promise<File> => {
+    logUploadDebug("prepare-start", {
+      name: file.name,
+      type: file.type,
+      sizeBytes: file.size,
+      sizeLabel: formatFileSize(file.size),
+    });
+
+    if (!file.type.startsWith("image/")) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        throw new Error(`文件 ${file.name} 超过 10MB 限制，未上传`);
+      }
+
+      logUploadDebug("prepare-skip-non-image", {
+        name: file.name,
+        sizeBytes: file.size,
+        sizeLabel: formatFileSize(file.size),
+      });
+      return file;
+    }
+
+    if (file.size <= MAX_IMAGE_UPLOAD_BYTES) {
+      logUploadDebug("prepare-skip-under-limit", {
+        name: file.name,
+        sizeBytes: file.size,
+        sizeLabel: formatFileSize(file.size),
+        limitBytes: MAX_IMAGE_UPLOAD_BYTES,
+        limitLabel: `${MAX_IMAGE_UPLOAD_MB} MB`,
+      });
+      return file;
+    }
+
+    const compressedBlob = await imageCompression(file, {
+      maxSizeMB: MAX_IMAGE_UPLOAD_BYTES / (1024 * 1024),
+      maxWidthOrHeight: MAX_IMAGE_DIMENSION,
+      fileType: IMAGE_OUTPUT_FORMAT,
+      initialQuality: 0.82,
+      useWebWorker: true,
+    });
+
+    const outputName = replaceExtension(file.name, ".webp");
+    const compressedFile = new File([compressedBlob], outputName, {
+      type: IMAGE_OUTPUT_FORMAT,
+      lastModified: Date.now(),
+    });
+
+    logUploadDebug("prepare-complete", {
+      originalName: file.name,
+      originalSizeBytes: file.size,
+      originalSizeLabel: formatFileSize(file.size),
+      outputName,
+      outputType: compressedFile.type,
+      outputSizeBytes: compressedFile.size,
+      outputSizeLabel: formatFileSize(compressedFile.size),
+    });
+
+    if (compressedFile.size > MAX_IMAGE_UPLOAD_BYTES) {
+      logUploadDebug("prepare-over-limit-after-compress", {
+        originalName: file.name,
+        outputName,
+        outputSizeBytes: compressedFile.size,
+        outputSizeLabel: formatFileSize(compressedFile.size),
+        limitBytes: MAX_IMAGE_UPLOAD_BYTES,
+        limitLabel: `${MAX_IMAGE_UPLOAD_MB} MB`,
+      });
+      throw new Error(`图片 ${file.name} 压缩后仍超过 ${MAX_IMAGE_UPLOAD_MB}MB 限制，未上传`);
+    }
+
+    return compressedFile;
   };
 
   const uploadPendingFiles = async (): Promise<StoredAttachment[]> => {
@@ -241,32 +345,45 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
     const uploaded: StoredAttachment[] = [];
 
     for (const file of pendingFiles) {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw new Error(`文件 ${file.name} 超过 10MB 限制`);
-      }
+      const uploadFile = await prepareFileForUpload(file);
+      logUploadDebug("upload-start", {
+        originalName: file.name,
+        uploadName: uploadFile.name,
+        uploadType: uploadFile.type,
+        uploadSizeBytes: uploadFile.size,
+        uploadSizeLabel: formatFileSize(uploadFile.size),
+      });
 
-      const safeName = sanitizeFileName(file.name);
+      const safeName = sanitizeFileName(uploadFile.name);
       const objectPath = `${userId}/${deviceId}/${SESSION_ID}/${generateObjectId()}-${safeName}`;
 
       const { error } = await supabase.storage
         .from(ATTACHMENTS_BUCKET)
-        .upload(objectPath, file, {
+        .upload(objectPath, uploadFile, {
           cacheControl: "3600",
           upsert: false,
-          contentType: file.type || undefined,
+          contentType: uploadFile.type || undefined,
         });
 
       if (error) {
         throw error;
       }
 
+      logUploadDebug("upload-success", {
+        objectPath,
+        uploadName: uploadFile.name,
+        uploadType: uploadFile.type,
+        uploadSizeBytes: uploadFile.size,
+        uploadSizeLabel: formatFileSize(uploadFile.size),
+      });
+
       uploaded.push({
         bucket: ATTACHMENTS_BUCKET,
         storage_path: objectPath,
-        name: file.name,
-        mime_type: file.type || "application/octet-stream",
-        size: file.size,
-        signed_url: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+        name: uploadFile.name,
+        mime_type: uploadFile.type || "application/octet-stream",
+        size: uploadFile.size,
+        signed_url: uploadFile.type.startsWith("image/") ? URL.createObjectURL(uploadFile) : undefined,
       });
     }
 
@@ -282,6 +399,7 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
       return;
     }
 
+    setComposerError("");
     sendingLockRef.current = true;
     setIsSending(true);
 
@@ -330,6 +448,7 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
     } catch (error) {
       console.error("Failed to upload/send message", error);
       setIsTyping(false);
+      setComposerError(toUserErrorMessage(error));
     } finally {
       sendingLockRef.current = false;
       setIsSending(false);
@@ -338,6 +457,9 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
 
   const handleTextareaInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const nextValue = event.target.value;
+    if (composerError) {
+      setComposerError("");
+    }
     setInputValue(nextValue);
     const target = event.target;
     target.style.height = "46px";
@@ -486,7 +608,7 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
               <div className="chat-pending-head">
                 <Paperclip className="h-3.5 w-3.5" />
                 <span>已添加 {pendingFiles.length}/{MAX_FILES_PER_MESSAGE} 个附件</span>
-                <span className="chat-pending-limit">单个不超过 10MB</span>
+                <span className="chat-pending-limit">图片压后不超过 {MAX_IMAGE_UPLOAD_MB}MB，其他文件不超过 10MB</span>
               </div>
               <div className="chat-pending-grid">
                 {pendingFiles.map((file, idx) => (
@@ -518,6 +640,12 @@ export default function ChatClient({ userId, userEmail, deviceId, deviceName }: 
                   </div>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {composerError ? (
+            <div className="chat-composer-error" role="alert">
+              {composerError}
             </div>
           ) : null}
 
