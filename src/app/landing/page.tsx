@@ -132,41 +132,56 @@ export default function LandingPage() {
 
             <main className="flex-1 flex flex-col pt-12 pb-24 lg:pt-24">
                 {/* Hero Section */}
-                <section className="container mx-auto max-w-6xl px-4 flex flex-col items-center text-center space-y-10">
-                    <div className="relative w-32 h-32 md:w-48 md:h-48 mb-4 animate-float">
-                        <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full mix-blend-multiply opacity-50 dark:opacity-20 animate-pulse" />
-                        <Image
-                            src="/sootie-logo-transparent.png"
-                            alt="Sootie Sprite"
-                            fill
-                            className="object-contain drop-shadow-2xl relative z-10"
-                            priority
-                        />
-                    </div>
+                <section className="container mx-auto max-w-6xl px-4">
+                    <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
+                        <div className="landing-hero-kicker">
+                            Sootie Desktop AI
+                        </div>
 
-                    <div className="space-y-6 max-w-3xl">
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground">
-                            你的 <span className="text-brand">7×24</span> 桌面级
-                            <br className="hidden md:block" /> AI 智能伙伴
-                        </h1>
-                        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                            随时待命的小煤球，常驻你的电脑桌面。无论是信息检索、任务处理还是远程操控，Sootie 始终为你提供温暖而强大的帮助。
-                        </p>
-                    </div>
+                        <div className="mt-6 max-w-4xl space-y-5">
+                            <h1 className="text-5xl font-bold tracking-[-0.04em] text-foreground md:text-7xl lg:text-[5.5rem]">
+                                你的桌面 AI 助手，
+                                <br className="hidden md:block" />
+                                <span className="text-brand">始终在线。</span>
+                            </h1>
+                            <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
+                                Sootie 常驻你的电脑桌面，把信息检索、任务处理和远程操控收进一个持续在线的 AI 工作界面。
+                            </p>
+                        </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                        <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
-                            <Button size="lg" className="bg-brand hover:bg-brand-hover text-primary-foreground rounded-full h-14 px-8 text-base shadow-sm w-full sm:w-auto">
-                                <Download className="mr-2 w-5 h-5" />
-                                下载 macOS 版
-                            </Button>
-                        </a>
-                        <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
-                            <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-border hover:bg-secondary w-full sm:w-auto">
-                                <Monitor className="mr-2 w-5 h-5" />
-                                下载 Windows 版
-                            </Button>
-                        </a>
+                        <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
+                            <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
+                                <Button size="lg" className="bg-brand hover:bg-brand-hover text-primary-foreground rounded-full h-14 px-8 text-base shadow-sm w-full sm:w-auto">
+                                    <Download className="mr-2 w-5 h-5" />
+                                    下载 macOS 版
+                                </Button>
+                            </a>
+                            <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
+                                <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-border hover:bg-secondary w-full sm:w-auto">
+                                    <Monitor className="mr-2 w-5 h-5" />
+                                    下载 Windows 版
+                                </Button>
+                            </a>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
+                            <span className="rounded-full border border-border/70 bg-card/85 px-4 py-2">桌面级常驻</span>
+                            <span className="rounded-full border border-border/70 bg-card/85 px-4 py-2">远程任务协同</span>
+                            <span className="rounded-full border border-border/70 bg-card/85 px-4 py-2">多模型驱动</span>
+                            <span className="rounded-full border border-border/70 bg-card/85 px-4 py-2">本地隐私安全</span>
+                        </div>
+
+                        <div className="landing-showcase-wrap mt-14 w-full">
+                            <div className="landing-showcase-glow" aria-hidden="true" />
+                            <Image
+                                src="/landing-product-showcase-v2.png"
+                                alt="Sootie 产品界面展示"
+                                width={1640}
+                                height={980}
+                                priority
+                                className="landing-showcase-image h-auto w-full"
+                            />
+                        </div>
                     </div>
                 </section>
 
