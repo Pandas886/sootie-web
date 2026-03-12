@@ -28,11 +28,22 @@ export function WechatLoginClient() {
   const hasExchangedRef = useRef(false);
   const redirectDelayRef = useRef<number | null>(null);
 
+  function logClientTiming(event: string, detail?: Record<string, unknown>) {
+    console.log("[wechat-login]", event, {
+      intentId: intent?.intentId ?? null,
+      status,
+      at: new Date().toISOString(),
+      ...detail,
+    });
+  }
+
   async function loadLoginCode() {
+    const startedAt = performance.now();
     setStatus("loading");
     setError(null);
     setCopied(false);
     hasExchangedRef.current = false;
+    logClientTiming("load_login_code_start");
 
     try {
       const response = await fetch("/api/wechat/qr", { cache: "no-store" });
@@ -43,10 +54,19 @@ export function WechatLoginClient() {
 
       setIntent(payload);
       setStatus("pending");
+      console.log("[wechat-login]", "load_login_code_success", {
+        intentId: payload.intentId,
+        costMs: Math.round(performance.now() - startedAt),
+        expiresAt: payload.expiresAt,
+      });
     } catch (error) {
       setIntent(null);
       setStatus("error");
       setError(error instanceof Error ? error.message : "暂时无法生成登录码");
+      console.log("[wechat-login]", "load_login_code_error", {
+        costMs: Math.round(performance.now() - startedAt),
+        message: error instanceof Error ? error.message : "unknown",
+      });
     }
   }
 
@@ -75,6 +95,7 @@ export function WechatLoginClient() {
 
     const timer = window.setInterval(async () => {
       try {
+        const pollStartedAt = performance.now();
         const response = await fetch(
           `/api/auth/wechat/status?intentId=${encodeURIComponent(intent.intentId)}&nonce=${encodeURIComponent(intent.browserNonce)}`,
           { cache: "no-store" }
@@ -85,17 +106,25 @@ export function WechatLoginClient() {
         }
 
         const payload = (await response.json()) as { status: LoginStatus };
+        console.log("[wechat-login]", "poll_status", {
+          intentId: intent.intentId,
+          polledStatus: payload.status,
+          costMs: Math.round(performance.now() - pollStartedAt),
+        });
 
         if (payload.status === "approved" && !hasExchangedRef.current) {
           hasExchangedRef.current = true;
           window.clearInterval(timer);
           setStatus("approved");
+          logClientTiming("approved_received");
 
           await new Promise((resolve) => {
             redirectDelayRef.current = window.setTimeout(resolve, 850);
           });
 
           setStatus("redirecting");
+          const exchangeStartedAt = performance.now();
+          logClientTiming("exchange_start");
 
           const exchangeResponse = await fetch("/api/auth/wechat/exchange", {
             method: "POST",
@@ -113,10 +142,17 @@ export function WechatLoginClient() {
             throw new Error(exchangePayload.error ?? "登录兑换失败");
           }
 
+          console.log("[wechat-login]", "exchange_success", {
+            intentId: intent.intentId,
+            costMs: Math.round(performance.now() - exchangeStartedAt),
+            redirectTo: exchangePayload.redirectTo,
+          });
+
           await new Promise((resolve) => {
             redirectDelayRef.current = window.setTimeout(resolve, 420);
           });
 
+          logClientTiming("redirect_assign");
           window.location.assign(exchangePayload.redirectTo);
           return;
         }
@@ -134,6 +170,10 @@ export function WechatLoginClient() {
         setStatus("pending");
       } catch (error) {
         console.error("Failed to poll wechat login status:", error);
+        console.log("[wechat-login]", "poll_or_exchange_error", {
+          intentId: intent.intentId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
         setStatus("error");
         setError(error instanceof Error ? error.message : "登录状态检查失败");
         window.clearInterval(timer);
