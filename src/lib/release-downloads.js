@@ -18,6 +18,18 @@ export function pickReleaseAsset(platform, assets) {
   }
 
   const macAssets = assets.filter((asset) => /\.dmg$/i.test(asset.name));
+  if (platform === 'macos-arm64') {
+    return macAssets.find((asset) => asset.name === 'Sootie-mac-arm64-latest.dmg')
+      || macAssets.find((asset) => /arm64/i.test(asset.name))
+      || null;
+  }
+
+  if (platform === 'macos-x64') {
+    return macAssets.find((asset) => asset.name === 'Sootie-mac-x64-latest.dmg')
+      || macAssets.find((asset) => /x64/i.test(asset.name))
+      || null;
+  }
+
   return macAssets.find((asset) => asset.name === 'Sootie-mac-arm64-latest.dmg')
     || macAssets.find((asset) => asset.name === 'Sootie-mac-x64-latest.dmg')
     || macAssets.find((asset) => /arm64/i.test(asset.name))
@@ -27,5 +39,7 @@ export function pickReleaseAsset(platform, assets) {
 }
 
 export function getPlatformLabel(platform) {
+  if (platform === 'macos-arm64') return 'macOS Apple Silicon';
+  if (platform === 'macos-x64') return 'macOS Intel';
   return platform === 'windows' ? 'Windows' : 'macOS';
 }

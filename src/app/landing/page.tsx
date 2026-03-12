@@ -3,9 +3,10 @@ import Link from 'next/link';
 import Script from 'next/script';
 import type { Metadata } from "next";
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Download, Monitor, Cloud, Zap, Shield } from 'lucide-react';
+import { ArrowRight, Cloud, Zap, Shield, Monitor } from 'lucide-react';
 import './landing.css';
 import { absoluteUrl, siteConfig } from "@/lib/seo";
+import { DownloadCtas } from './DownloadCtas';
 
 export const metadata: Metadata = {
     title: "Sootie Cloud 官网",
@@ -149,20 +150,7 @@ export default function LandingPage() {
                             </p>
                         </div>
 
-                        <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
-                            <a href="/download/macos">
-                                <Button size="lg" className="bg-brand hover:bg-brand-hover text-primary-foreground rounded-full h-14 px-8 text-base shadow-sm w-full sm:w-auto">
-                                    <Download className="mr-2 w-5 h-5" />
-                                    下载 macOS 版
-                                </Button>
-                            </a>
-                            <a href="/download/windows">
-                                <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-border hover:bg-secondary w-full sm:w-auto">
-                                    <Monitor className="mr-2 w-5 h-5" />
-                                    下载 Windows 版
-                                </Button>
-                            </a>
-                        </div>
+                        <DownloadCtas />
 
                         <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
                             <span className="rounded-full border border-border/70 bg-card/85 px-4 py-2">桌面级常驻</span>
