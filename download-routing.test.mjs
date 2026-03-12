@@ -1,24 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getPlatformLabel, pickReleaseAsset } from './src/lib/release-downloads.js';
+import { getPlatformLabel, makeModelScopeDownloadUrl, pickReleaseAsset } from './src/lib/release-downloads.js';
 
 test('pickReleaseAsset selects latest windows installer', () => {
   const asset = pickReleaseAsset('windows', [
-    { name: 'Sootie-0.1.19-arm64.dmg', browser_download_url: 'https://example.com/mac' },
-    { name: 'Sootie.Setup.0.1.19.exe', browser_download_url: 'https://example.com/win' },
+    { name: 'Sootie-mac-arm64-latest.dmg', path: 'Sootie-mac-arm64-latest.dmg' },
+    { name: 'Sootie-windows-x64-latest.exe', path: 'Sootie-windows-x64-latest.exe' },
   ]);
 
-  assert.equal(asset?.name, 'Sootie.Setup.0.1.19.exe');
+  assert.equal(asset?.name, 'Sootie-windows-x64-latest.exe');
 });
 
 test('pickReleaseAsset selects preferred mac arm64 installer', () => {
   const asset = pickReleaseAsset('macos', [
-    { name: 'Sootie-0.1.19-x64.dmg', browser_download_url: 'https://example.com/mac-x64' },
-    { name: 'Sootie-0.1.19-arm64.dmg', browser_download_url: 'https://example.com/mac-arm64' },
+    { name: 'Sootie-mac-x64-latest.dmg', path: 'Sootie-mac-x64-latest.dmg' },
+    { name: 'Sootie-mac-arm64-latest.dmg', path: 'Sootie-mac-arm64-latest.dmg' },
   ]);
 
-  assert.equal(asset?.name, 'Sootie-0.1.19-arm64.dmg');
+  assert.equal(asset?.name, 'Sootie-mac-arm64-latest.dmg');
+});
+
+test('builds modelscope api download url', () => {
+  assert.equal(
+    makeModelScopeDownloadUrl('Sootie-mac-arm64-latest.dmg'),
+    'https://modelscope.cn/api/v1/models/peterpoker/sootie-releases/repo?Revision=master&FilePath=Sootie-mac-arm64-latest.dmg',
+  );
 });
 
 test('returns platform label for download CTA copy', () => {

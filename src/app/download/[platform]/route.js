@@ -1,22 +1,34 @@
 import { NextResponse } from 'next/server';
 
-import { GITCODE_RELEASES_LATEST_URL, getPlatformLabel, pickReleaseAsset } from '@/lib/release-downloads';
+import {
+  MODELSCOPE_REPO_FILES_PAGE_URL,
+  MODELSCOPE_REPO_FILES_URL,
+  getPlatformLabel,
+  makeModelScopeDownloadUrl,
+  pickReleaseAsset,
+} from '@/lib/release-downloads';
 
 export async function GET(_request, { params }) {
   const platform = params?.platform === 'windows' ? 'windows' : 'macos';
 
-  const response = await fetch(GITCODE_RELEASES_LATEST_URL, {
+  const response = await fetch(MODELSCOPE_REPO_FILES_URL, {
     next: { revalidate: 300 },
   });
 
   if (!response.ok) {
-    return NextResponse.redirect('https://gitcode.com/peterPoker/sootie-websootie-web/releases');
+    return NextResponse.redirect(MODELSCOPE_REPO_FILES_PAGE_URL);
   }
 
-  const release = await response.json();
-  const asset = pickReleaseAsset(platform, release.assets || []);
+  const payload = await response.json();
+  const asset = pickReleaseAsset(
+    platform,
+    (payload?.Data?.Files || []).map((file) => ({
+      name: file.Name,
+      path: file.Path,
+    })),
+  );
 
-  if (!asset?.browser_download_url) {
+  if (!asset?.path) {
     return new NextResponse(`${getPlatformLabel(platform)} installer is not available yet.`, {
       status: 404,
       headers: {
@@ -25,5 +37,5 @@ export async function GET(_request, { params }) {
     });
   }
 
-  return NextResponse.redirect(asset.browser_download_url);
+  return NextResponse.redirect(makeModelScopeDownloadUrl(asset.path));
 }

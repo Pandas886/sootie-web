@@ -1,4 +1,10 @@
-export const GITCODE_RELEASES_LATEST_URL = 'https://api.gitcode.com/api/v5/repos/peterPoker/sootie-websootie-web/releases/latest';
+export const MODELSCOPE_REPO_ID = 'peterpoker/sootie-releases';
+export const MODELSCOPE_REPO_FILES_URL = `https://modelscope.cn/api/v1/models/${MODELSCOPE_REPO_ID}/repo/files`;
+export const MODELSCOPE_REPO_FILES_PAGE_URL = `https://modelscope.cn/models/${MODELSCOPE_REPO_ID}/files`;
+
+export function makeModelScopeDownloadUrl(filePath) {
+  return `https://modelscope.cn/api/v1/models/${MODELSCOPE_REPO_ID}/repo?Revision=master&FilePath=${encodeURIComponent(filePath)}`;
+}
 
 export function pickReleaseAsset(platform, assets) {
   if (!Array.isArray(assets) || assets.length === 0) {
@@ -6,11 +12,15 @@ export function pickReleaseAsset(platform, assets) {
   }
 
   if (platform === 'windows') {
-    return assets.find((asset) => /\.exe$/i.test(asset.name)) || null;
+    return assets.find((asset) => asset.name === 'Sootie-windows-x64-latest.exe')
+      || assets.find((asset) => /\.exe$/i.test(asset.name))
+      || null;
   }
 
   const macAssets = assets.filter((asset) => /\.dmg$/i.test(asset.name));
-  return macAssets.find((asset) => /arm64/i.test(asset.name))
+  return macAssets.find((asset) => asset.name === 'Sootie-mac-arm64-latest.dmg')
+    || macAssets.find((asset) => asset.name === 'Sootie-mac-x64-latest.dmg')
+    || macAssets.find((asset) => /arm64/i.test(asset.name))
     || macAssets.find((asset) => /x64/i.test(asset.name))
     || macAssets[0]
     || null;
