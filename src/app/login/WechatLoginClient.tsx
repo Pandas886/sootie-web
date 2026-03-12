@@ -26,6 +26,7 @@ export function WechatLoginClient() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const hasExchangedRef = useRef(false);
+  const redirectDelayRef = useRef<number | null>(null);
 
   async function loadLoginCode() {
     setStatus("loading");
@@ -87,6 +88,12 @@ export function WechatLoginClient() {
 
         if (payload.status === "approved" && !hasExchangedRef.current) {
           hasExchangedRef.current = true;
+          setStatus("approved");
+
+          await new Promise((resolve) => {
+            redirectDelayRef.current = window.setTimeout(resolve, 850);
+          });
+
           setStatus("redirecting");
 
           const exchangeResponse = await fetch("/api/auth/wechat/exchange", {
@@ -104,6 +111,10 @@ export function WechatLoginClient() {
           if (!exchangeResponse.ok || !exchangePayload.redirectTo) {
             throw new Error(exchangePayload.error ?? "登录兑换失败");
           }
+
+          await new Promise((resolve) => {
+            redirectDelayRef.current = window.setTimeout(resolve, 420);
+          });
 
           window.location.assign(exchangePayload.redirectTo);
           return;
@@ -124,7 +135,13 @@ export function WechatLoginClient() {
       }
     }, 2000);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+
+      if (redirectDelayRef.current) {
+        window.clearTimeout(redirectDelayRef.current);
+      }
+    };
   }, [intent]);
 
   const expiresText = useMemo(() => {
@@ -139,130 +156,170 @@ export function WechatLoginClient() {
     })} 前发送到公众号`;
   }, [intent?.expiresAt]);
 
+  const isTransitioning = status === "approved" || status === "redirecting";
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-sm font-medium" style={{ color: "#1A1D23" }}>
-          扫码关注后发送登录码
-        </p>
-        <p className="text-sm leading-6" style={{ color: "#6B7280" }}>
-          先用下面的二维码关注公众号“涂个AI”，再把网页登录码发送到公众号，当前页面会自动完成登录。
-        </p>
-      </div>
-
+    <div className="space-y-4">
       <div
-        className="rounded-2xl border p-5"
+        className="relative overflow-hidden rounded-[1.9rem] border"
         style={{
-          borderColor: "#E0E2E7",
-          background: "linear-gradient(180deg, #FFFFFF 0%, #F8F9FB 100%)",
+          borderColor: "rgba(171, 144, 95, 0.16)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(249,245,236,0.96) 100%)",
+          boxShadow: "0 24px 48px rgba(148, 116, 56, 0.07)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ background: "rgba(196, 147, 74, 0.12)", color: "#a87a3a" }}
-          >
-            <MessageSquareText className="size-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: "#1A1D23" }}>
-              先扫码关注公众号
-            </p>
-            <p className="text-xs" style={{ color: "#6B7280" }}>
-              固定公众号二维码，扫码后即可关注
-            </p>
+        <div
+          className={`pointer-events-none absolute inset-0 z-10 transition-all duration-500 ${
+            isTransitioning ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(250,248,242,0.66) 0%, rgba(248,245,237,0.9) 100%)",
+            backdropFilter: isTransitioning ? "blur(6px)" : "blur(0px)",
+          }}
+        >
+          <div className="flex h-full items-center justify-center px-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="relative flex h-20 w-20 items-center justify-center">
+                <div
+                  className="absolute inset-0 rounded-full animate-ping"
+                  style={{ background: "rgba(196,147,74,0.14)" }}
+                />
+                <div
+                  className="absolute inset-[10px] rounded-full animate-pulse"
+                  style={{ background: "rgba(196,147,74,0.1)" }}
+                />
+                <div
+                  className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white"
+                  style={{ boxShadow: "0 10px 28px rgba(196,147,74,0.2)" }}
+                >
+                  {status === "approved" ? (
+                    <CheckCircle2 className="size-7" style={{ color: "#b9812f" }} />
+                  ) : (
+                    <Loader2 className="size-7 animate-spin" style={{ color: "#b9812f" }} />
+                  )}
+                </div>
+              </div>
+              <p className="mt-5 text-xl font-semibold tracking-[0.01em]" style={{ color: "#1A1D23" }}>
+                {status === "approved" ? "已收到公众号确认" : "正在进入 Sootie"}
+              </p>
+              <p className="mt-2 max-w-xs text-sm leading-6" style={{ color: "#6B7280" }}>
+                {status === "approved"
+                  ? "正在校验身份并建立会话。"
+                  : "即将完成跳转，请稍候。"}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-5 flex justify-center">
-          <div className="rounded-[28px] border bg-white p-4 shadow-sm" style={{ borderColor: "#ECEEF2" }}>
-            <Image
-              src="/wechat-follow-qr.jpg"
-              alt="涂个AI公众号二维码"
-              width={220}
-              height={220}
-              className="h-[220px] w-[220px] rounded-[20px]"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="rounded-2xl border p-5"
-        style={{
-          borderColor: "#E0E2E7",
-          background: "linear-gradient(180deg, #FFFFFF 0%, #F8F9FB 100%)",
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="p-6 md:p-7">
+          <div className="flex flex-col items-center text-center">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{ background: "rgba(196, 147, 74, 0.12)", color: "#a87a3a" }}
-            >
-              <MessageSquareText className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "#1A1D23" }}>
-                再发送这串登录码
-              </p>
-              <p className="text-xs" style={{ color: "#6B7280" }}>
-                {expiresText}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => void loadLoginCode()}
-            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
-            style={{
-              background: "rgba(196, 147, 74, 0.08)",
-              color: "#a87a3a",
-            }}
-          >
-            <RefreshCcw className="size-3.5" />
-            刷新登录码
-          </button>
-        </div>
-
-        <div className="mt-6 rounded-[28px] border p-6 shadow-sm" style={{ borderColor: "#ECEEF2", background: "#fff" }}>
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-[0.35em]" style={{ color: "#9CA3AF" }}>
-              WeChat Login Code
-            </p>
-            <div className="mt-4 min-h-16 flex items-center justify-center">
-              {intent?.loginCode ? (
-                <p className="text-4xl font-black tracking-[0.28em]" style={{ color: "#1A1D23" }}>
-                  {intent.loginCode}
-                </p>
-              ) : (
-                <Loader2 className="size-8 animate-spin" style={{ color: "#a87a3a" }} />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => void copyCode()}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold"
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold"
               style={{
-                background: copied ? "rgba(34, 197, 94, 0.1)" : "rgba(196, 147, 74, 0.1)",
-                color: copied ? "#15803D" : "#a87a3a",
+                color: "#8D6A2F",
+                background: "rgba(196,147,74,0.08)",
+                border: "1px solid rgba(196,147,74,0.12)",
               }}
             >
-              {copied ? <CheckCircle2 className="size-4" /> : <Copy className="size-4" />}
-              {copied ? "已复制" : "复制登录码"}
-            </button>
-          </div>
-        </div>
+              <MessageSquareText className="size-3.5" />
+              公众号“涂个AI”
+            </div>
 
-        <div className="mt-5 rounded-2xl px-4 py-3 text-sm" style={{ background: "#F3F4F6", color: "#4B5563" }}>
-          <div className="font-medium" style={{ color: "#1A1D23" }}>
-            使用方式
+            <div className="mt-5 flex justify-center">
+              <Image
+                src="/wechat-follow-qr.jpg"
+                alt="涂个AI公众号二维码"
+                width={220}
+                height={220}
+                className="h-[188px] w-[188px] rounded-[1rem] border border-[#e8dcc9] bg-white p-2 md:h-[204px] md:w-[204px]"
+              />
+            </div>
+
+            <div
+              className="mt-6 w-full border-t pt-6"
+              style={{ borderColor: "rgba(171, 144, 95, 0.14)" }}
+            >
+              <div className="flex items-center justify-between gap-3 text-left">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.42em]" style={{ color: "#A28A5E" }}>
+                    Login Code
+                  </p>
+                  <p className="mt-2 text-xs leading-5" style={{ color: "#7A7A7A" }}>
+                    {expiresText}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadLoginCode()}
+                  disabled={isTransitioning}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{
+                    background: "rgba(196, 147, 74, 0.08)",
+                    color: "#8D6A2F",
+                  }}
+                >
+                  <RefreshCcw className="size-3.5" />
+                  刷新
+                </button>
+              </div>
+
+              <div
+                className={`mt-4 min-h-16 flex items-center justify-center rounded-[1rem] bg-white px-4 py-5 transition-all duration-500 ${
+                  isTransitioning ? "scale-[0.985]" : "scale-100"
+                }`}
+                style={{
+                  boxShadow: isTransitioning
+                    ? "inset 0 0 0 1px rgba(232,220,201,0.9), 0 0 0 8px rgba(196,147,74,0.06)"
+                    : "inset 0 0 0 1px rgba(232,220,201,0.9)",
+                }}
+              >
+                {intent?.loginCode ? (
+                  <p
+                    className={`text-[2.3rem] font-black tracking-[0.2em] transition-all duration-500 sm:text-[2.75rem] sm:tracking-[0.28em] ${
+                      isTransitioning ? "opacity-30 blur-[1px]" : "opacity-100"
+                    }`}
+                    style={{ color: "#151821" }}
+                  >
+                    {intent.loginCode}
+                  </p>
+                ) : (
+                  <Loader2 className="size-8 animate-spin" style={{ color: "#a87a3a" }} />
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void copyCode()}
+                  disabled={isTransitioning}
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{
+                    background: copied ? "rgba(34, 197, 94, 0.1)" : "rgba(196, 147, 74, 0.1)",
+                    color: copied ? "#15803D" : "#8D6A2F",
+                  }}
+                >
+                  {copied ? <CheckCircle2 className="size-4" /> : <Copy className="size-4" />}
+                  {copied ? "已复制" : "复制登录码"}
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="mt-2">1. 用上面的二维码先关注公众号“涂个AI”</p>
-          <p className="mt-1">2. 把这里的 6 位登录码发送到公众号聊天框</p>
-          <p className="mt-1">3. 当前页面会自动完成登录</p>
         </div>
       </div>
+
+      {status === "approved" && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm font-medium"
+          style={{
+            background: "rgba(34, 197, 94, 0.08)",
+            color: "#15803D",
+            border: "1px solid rgba(34, 197, 94, 0.14)",
+          }}
+        >
+          已感知到公众号回执，正在准备登录。
+        </div>
+      )}
 
       {status === "redirecting" && (
         <div
@@ -273,7 +330,7 @@ export function WechatLoginClient() {
             border: "1px solid rgba(196, 147, 74, 0.2)",
           }}
         >
-          已收到公众号确认，正在完成登录…
+          正在建立会话，即将跳转…
         </div>
       )}
 
@@ -303,8 +360,8 @@ export function WechatLoginClient() {
         </div>
       )}
 
-      <div className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "#c4934a" }}>
-        发送后当前页面会自动轮询并跳转到控制台
+      <div className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "#9B7B46" }}>
+        发送后将自动登录
         <ArrowRight className="size-4" />
       </div>
     </div>

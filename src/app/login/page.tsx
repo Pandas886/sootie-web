@@ -29,14 +29,29 @@ export default async function LoginPage({
   const resolvedSearchParams = await searchParams;
 
   return (
-    <div className="flex min-h-screen">
+    <div
+      className="flex min-h-screen"
+      style={{
+        background:
+          "radial-gradient(circle at top left, rgba(196,147,74,0.08), transparent 22%), linear-gradient(90deg, #0b1018 0%, #121827 48%, #f3efe6 48%, #f8f5ee 100%)",
+      }}
+    >
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center"
         style={{
           background:
-            "linear-gradient(135deg, #0F1117 0%, #1A1D27 40%, #2A2E38 70%, #c4934a 100%)",
+            "radial-gradient(circle at 18% 18%, rgba(196,147,74,0.12), transparent 20%), radial-gradient(circle at 72% 82%, rgba(212,168,92,0.18), transparent 22%), linear-gradient(180deg, #090d15 0%, #101624 48%, #181e2d 100%)",
         }}
       >
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "42px 42px",
+            maskImage: "linear-gradient(180deg, rgba(0,0,0,0.8), transparent)",
+          }}
+        />
         <div
           className="absolute top-20 left-20 w-72 h-72 rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #c4934a, transparent)" }}
@@ -51,19 +66,23 @@ export default async function LoginPage({
         />
 
         <div className="relative z-10 max-w-lg px-12 text-white">
-          <div className="flex items-center gap-3 mb-8">
-            <span className="text-3xl font-bold tracking-tight">Sootie</span>
+          <div className="mb-8 inline-flex items-center gap-3 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.32em]"
+            style={{ borderColor: "rgba(212,168,92,0.28)", color: "rgba(255,255,255,0.72)" }}>
+            Sootie Cloud
           </div>
-          <h1 className="text-4xl font-bold leading-tight mb-6">
-            发送登录码后，
+          <h1
+            className="mb-6 text-5xl leading-[1.05] tracking-[-0.03em]"
+            style={{ fontFamily: '"Times New Roman", "Songti SC", "Noto Serif SC", serif' }}
+          >
+            你的智能 AI 助手，
             <br />
-            <span style={{ color: "#d4a85c" }}>公众号即登录</span>
+            <span style={{ color: "#d4a85c" }}>无处不在</span>
           </h1>
           <p className="text-lg opacity-70 mb-12 leading-relaxed">
-            用微信公众号作为唯一身份入口，关注并发送登录码后即可进入 Sootie Cloud。
+            连接你的本地 AI Agent 到云端，随时随地管理设备、对话和任务。
           </p>
 
-          <div className="space-y-5">
+          <div className="space-y-5 border-l pl-6" style={{ borderColor: "rgba(212,168,92,0.18)" }}>
             <div className="flex items-center gap-4">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-xl"
@@ -72,8 +91,8 @@ export default async function LoginPage({
                 <Shield className="size-5" style={{ color: "#d4a85c" }} />
               </div>
               <div>
-                <p className="font-medium">唯一身份入口</p>
-                <p className="text-sm opacity-60">统一微信账号与云端设备权限</p>
+                <p className="font-medium">端到端加密</p>
+                <p className="text-sm opacity-60">你的数据安全有保障</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -84,8 +103,8 @@ export default async function LoginPage({
                 <Zap className="size-5" style={{ color: "#d4a85c" }} />
               </div>
               <div>
-                <p className="font-medium">首次关注，后续秒进</p>
-                <p className="text-sm opacity-60">关注一次，后面发送登录码即可进入控制台</p>
+                <p className="font-medium">极速响应</p>
+                <p className="text-sm opacity-60">本地代理，毫秒级反馈</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -96,8 +115,8 @@ export default async function LoginPage({
                 <Globe className="size-5" style={{ color: "#d4a85c" }} />
               </div>
               <div>
-                <p className="font-medium">公众号沉淀用户</p>
-                <p className="text-sm opacity-60">把关注、私信触达与 Web 登录打通成一个漏斗</p>
+                <p className="font-medium">多设备同步</p>
+                <p className="text-sm opacity-60">桌面端与 Web 无缝切换</p>
               </div>
             </div>
           </div>
@@ -106,29 +125,43 @@ export default async function LoginPage({
 
       <div
         className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-10"
-        style={{ background: "#F8F9FB" }}
+        style={{ background: "linear-gradient(180deg, rgba(248,246,241,0.98), rgba(242,239,231,0.96))" }}
       >
-        <div className="w-full max-w-md animate-[fade-in-up_0.5s_ease-out]">
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <span className="text-2xl font-bold tracking-tight" style={{ color: "#1A1D23" }}>
+        <div className="w-full max-w-[34rem] animate-[fade-in-up_0.55s_ease-out]">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span
+              className="text-2xl tracking-[0.08em]"
+              style={{ color: "#1A1D23", fontFamily: '"Times New Roman", Georgia, serif' }}
+            >
               Sootie
             </span>
           </div>
 
           <div
-            className="rounded-2xl p-8 md:p-10 shadow-xl"
+            className="relative overflow-hidden rounded-[2rem] p-8 md:p-10 shadow-[0_24px_60px_rgba(17,24,39,0.10)]"
             style={{
-              background: "rgba(255, 255, 255, 0.85)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(224, 226, 231, 0.6)",
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(250,248,242,0.96) 100%)",
+              border: "1px solid rgba(171, 144, 95, 0.18)",
             }}
           >
+            <div
+              className="absolute inset-x-0 top-0 h-px"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(196,147,74,0.7), transparent)" }}
+            />
+            <div
+              className="absolute right-[-4rem] top-[-5rem] h-36 w-36 rounded-full opacity-30"
+              style={{ background: "radial-gradient(circle, rgba(196,147,74,0.28), transparent 68%)" }}
+            />
             <div className="mb-8">
-              <h2 className="text-2xl font-bold tracking-tight" style={{ color: "#1A1D23" }}>
+              <h2
+                className="text-[2.1rem] leading-none tracking-tight"
+                style={{ color: "#1A1D23", fontFamily: '"Times New Roman", "Songti SC", "Noto Serif SC", serif' }}
+              >
                 微信登录
               </h2>
-              <p className="mt-2 text-sm" style={{ color: "#6B7280" }}>
-                通过公众号“涂个AI”发送登录码完成唯一登录
+              <p className="mt-3 text-sm leading-6" style={{ color: "#6B7280" }}>
+                扫码关注后，发送登录码进入 Sootie。
               </p>
             </div>
 
@@ -146,16 +179,10 @@ export default async function LoginPage({
             )}
 
             <WechatLoginClient />
-
-            <div className="mt-8 text-center">
-              <p className="text-sm" style={{ color: "#6B7280" }}>
-                这是当前站点的唯一登录方式。
-              </p>
-            </div>
           </div>
 
-          <p className="mt-6 text-center text-xs" style={{ color: "#9CA3AF" }}>
-            继续即表示你同意我们的服务条款和隐私政策
+          <p className="mt-6 text-center text-xs tracking-wide" style={{ color: "#B2B8C2" }}>
+            Sootie Cloud
           </p>
         </div>
       </div>
