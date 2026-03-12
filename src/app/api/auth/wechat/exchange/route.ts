@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { consumeWechatIntent, getWechatAuthConfirmUrl } from "@/lib/wechat";
+import { absoluteUrl } from "@/lib/seo";
+import { consumeWechatIntent } from "@/lib/wechat";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,16 +16,19 @@ export async function POST(request: NextRequest) {
       type: "magiclink",
       email: loginEmail,
       options: {
-        redirectTo: getWechatAuthConfirmUrl(),
+        redirectTo: absoluteUrl("/dashboard"),
       },
     });
 
-    if (error || !data?.properties?.action_link) {
+    const hashedToken = data?.properties?.hashed_token;
+    if (error || !hashedToken) {
       throw error ?? new Error("Failed to generate Supabase magic link");
     }
 
     return NextResponse.json({
-      redirectTo: data.properties.action_link,
+      redirectTo: absoluteUrl(
+        `/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink&next=/dashboard`
+      ),
     });
   } catch (error) {
     console.error("Failed to exchange wechat login:", error);
