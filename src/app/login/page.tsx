@@ -5,14 +5,14 @@ import { WechatLoginClient } from "./WechatLoginClient";
 
 export const metadata: Metadata = {
   title: "登录",
-  description: "关注涂个AI公众号并发送登录码，自动登录 Sootie Cloud 云端账号。",
+  description: "扫码关注涂个AI公众号，接收验证码后登录 Sootie Cloud 云端账号。",
   alternates: {
     canonical: "/login",
   },
   openGraph: {
     url: absoluteUrl("/login"),
     title: "登录 Sootie Cloud",
-    description: "关注公众号后发送登录码，自动登录并远程管理你的本地 AI Agent。",
+    description: "扫码关注公众号后接收验证码，输入网页即可远程管理你的本地 AI Agent。",
     images: [absoluteUrl(siteConfig.socialImage)],
   },
   robots: {
@@ -55,12 +55,12 @@ export default async function LoginPage({
             <span className="text-3xl font-bold tracking-tight">Sootie</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight mb-6">
-            发送登录码后，
+            扫码关注后，
             <br />
-            <span style={{ color: "#d4a85c" }}>公众号即登录</span>
+            <span style={{ color: "#d4a85c" }}>公众号回码登录</span>
           </h1>
           <p className="text-lg opacity-70 mb-12 leading-relaxed">
-            用微信公众号作为唯一身份入口，关注并发送登录码后即可进入 Sootie Cloud。
+            用微信公众号作为唯一身份入口，扫码关注后拿到网页登录验证码，再返回这里完成登录。
           </p>
 
           <div className="space-y-5">
@@ -85,7 +85,7 @@ export default async function LoginPage({
               </div>
               <div>
                 <p className="font-medium">首次关注，后续秒进</p>
-                <p className="text-sm opacity-60">关注一次，后面发送登录码即可进入控制台</p>
+                <p className="text-sm opacity-60">关注一次，扫码后直接在公众号里拿验证码</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -128,7 +128,7 @@ export default async function LoginPage({
                 微信登录
               </h2>
               <p className="mt-2 text-sm" style={{ color: "#6B7280" }}>
-                通过公众号“涂个AI”发送登录码完成唯一登录
+                通过公众号“涂个AI”扫码并回填验证码完成唯一登录
               </p>
             </div>
 
@@ -140,8 +140,8 @@ export default async function LoginPage({
                   color: "#DC2626",
                   border: "1px solid rgba(239, 68, 68, 0.15)",
                 }}
-                >
-                登录确认失败，请刷新登录码后重试。
+              >
+                登录确认失败，请刷新二维码后重试。
               </div>
             )}
 
