@@ -41,6 +41,37 @@ test('collects supported installer files from release tree', () => {
   );
 });
 
+test('ignores nested helper executables and unsupported top-level artifacts', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sootie-modelscope-upload-'));
+  const nestedDir = path.join(tempDir, 'win-unpacked');
+  fs.mkdirSync(nestedDir);
+
+  fs.writeFileSync(path.join(tempDir, 'Sootie.Setup.0.1.19.exe'), 'installer');
+  fs.writeFileSync(path.join(tempDir, 'helper.exe'), 'ignore');
+  fs.writeFileSync(path.join(nestedDir, 'elevate.exe'), 'ignore');
+  fs.writeFileSync(path.join(tempDir, 'Sootie-0.1.19-arm64.dmg'), 'mac');
+  fs.writeFileSync(path.join(tempDir, 'builder-debug.yml'), 'ignore');
+
+  const files = collectReleaseFiles(tempDir);
+
+  assert.deepEqual(
+    files.map((file) => ({
+      sourceName: file.sourceName,
+      targetName: file.targetName,
+    })),
+    [
+      {
+        sourceName: 'Sootie-0.1.19-arm64.dmg',
+        targetName: 'Sootie-mac-arm64-latest.dmg',
+      },
+      {
+        sourceName: 'Sootie.Setup.0.1.19.exe',
+        targetName: 'Sootie-windows-x64-latest.exe',
+      },
+    ],
+  );
+});
+
 test('builds modelscope download url from repo coordinates and file path', () => {
   assert.equal(
     makeModelScopeDownloadUrl('peterpoker/sootie-releases', 'Sootie-mac-arm64-latest.dmg'),

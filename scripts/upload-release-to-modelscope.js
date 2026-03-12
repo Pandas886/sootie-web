@@ -4,9 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
-const SUPPORTED_EXTENSIONS = new Set(['.dmg', '.zip', '.exe']);
 const DEFAULT_REPO_ID = 'peterpoker/sootie-releases';
 const DEFAULT_PYTHON_BIN = process.platform === 'win32' ? 'python' : 'python3';
+const MAC_INSTALLER_PATTERN = /^Sootie-.*\.(dmg|zip)$/i;
+const WINDOWS_INSTALLER_PATTERN = /^Sootie([ ._-]?Setup).*\.(exe)$/i;
 
 function walkFiles(rootDir) {
   const entries = fs.readdirSync(rootDir, { withFileTypes: true });
@@ -34,11 +35,35 @@ function inferMacArch(lowerName) {
   return 'x64';
 }
 
+function isSupportedInstallerArtifact(rootDir, filePath) {
+  const relativePath = path.relative(rootDir, filePath);
+  if (!relativePath || relativePath.startsWith('..')) {
+    return false;
+  }
+
+  if (relativePath.includes(path.sep)) {
+    return false;
+  }
+
+  const fileName = path.basename(filePath);
+  const extension = path.extname(fileName).toLowerCase();
+
+  if (extension === '.exe') {
+    return WINDOWS_INSTALLER_PATTERN.test(fileName);
+  }
+
+  if (extension === '.dmg' || extension === '.zip') {
+    return MAC_INSTALLER_PATTERN.test(fileName);
+  }
+
+  return false;
+}
+
 function toModelScopeLatestFileName(fileName) {
   const extension = path.extname(fileName).toLowerCase();
   const lowerName = fileName.toLowerCase();
 
-  if (!SUPPORTED_EXTENSIONS.has(extension)) {
+  if (!isSupportedInstallerArtifact('.', fileName)) {
     throw new Error(`Unsupported artifact extension for ${fileName}`);
   }
 
@@ -56,7 +81,7 @@ function collectReleaseFiles(rootDir) {
   }
 
   return walkFiles(rootDir)
-    .filter((filePath) => SUPPORTED_EXTENSIONS.has(path.extname(filePath).toLowerCase()))
+    .filter((filePath) => isSupportedInstallerArtifact(rootDir, filePath))
     .map((filePath) => ({
       filePath,
       sourceName: path.basename(filePath),
