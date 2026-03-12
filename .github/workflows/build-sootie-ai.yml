@@ -10,15 +10,22 @@ jobs:
     outputs:
       release_tag: ${{ steps.get_version.outputs.tag }}
     steps:
+      - name: Checkout sootie-web code
+        uses: actions/checkout@v4
+        with:
+          path: sootie-web
+
       - name: Checkout SootieAI code
         uses: actions/checkout@v4
         with:
           repository: Pandas886/SootieAI
           token: ${{ secrets.PAT_TOKEN }}
+          path: SootieAI
           
       - name: Get Version
         id: get_version
         shell: bash
+        working-directory: SootieAI
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "tag=v${VERSION}-$(date +'%Y%m%d%H%M')" >> "$GITHUB_OUTPUT"
@@ -64,11 +71,17 @@ jobs:
             script: "npm run dist:win"
 
     steps:
+      - name: Checkout sootie-web code
+        uses: actions/checkout@v4
+        with:
+          path: sootie-web
+
       - name: Checkout SootieAI code
         uses: actions/checkout@v4
         with:
           repository: Pandas886/SootieAI
           token: ${{ secrets.PAT_TOKEN }}
+          path: SootieAI
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -76,15 +89,19 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
+        working-directory: SootieAI
         run: npm install
 
       - name: Prepare bundled runtime
+        working-directory: SootieAI
         run: npm run setup:mingit
 
       - name: Prepare bundled db-cli
+        working-directory: SootieAI
         run: npm run setup:dbcli -- --required --target ${{ matrix.dbcli_target }} --release latest
 
       - name: Build Application
+        working-directory: SootieAI
         run: ${{ matrix.script }} -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,8 +112,8 @@ jobs:
         with:
           tag_name: "${{ needs.init.outputs.release_tag }}"
           files: |
-            release/*.dmg
-            release/*.zip
+            SootieAI/release/*.dmg
+            SootieAI/release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,12 +122,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ needs.init.outputs.release_tag }}"
-          files: release/*.exe
+          files: SootieAI/release/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Installers to GitCode Release
         run: node scripts/upload-release-to-gitcode.js
+        working-directory: sootie-web
         env:
           GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
           GITCODE_REPO_OWNER: ${{ secrets.GITCODE_REPO_OWNER }}
@@ -118,4 +136,4 @@ jobs:
           GITCODE_RELEASE_TAG: ${{ needs.init.outputs.release_tag }}
           GITCODE_RELEASE_NAME: SootieAI Release ${{ needs.init.outputs.release_tag }}
           GITCODE_TARGET_COMMITISH: main
-          GITCODE_ARTIFACT_ROOT: release
+          GITCODE_ARTIFACT_ROOT: ../SootieAI/release
