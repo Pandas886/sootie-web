@@ -3,7 +3,6 @@ import { DeviceList } from './DeviceList'
 import Link from 'next/link'
 import { LogOut } from 'lucide-react'
 import Image from 'next/image'
-import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/server'
 import { signout } from '../login/actions'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -17,6 +16,14 @@ export default async function DashboardPage() {
     }
 
     const devices = await getDevices()
+    const { data: wechatAccount } = await supabase
+        .from('wechat_accounts')
+        .select('nickname, avatar_url')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+
+    const displayName = wechatAccount?.nickname || user.user_metadata?.display_name || user.email
+    const avatarUrl = wechatAccount?.avatar_url || user.user_metadata?.avatar_url || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.email}`
 
     return (
         <div className="flex min-h-screen w-full flex-col" style={{ background: '#F8F9FB' }}>
@@ -35,12 +42,13 @@ export default async function DashboardPage() {
                 </div>
                 <div className="ml-auto flex items-center gap-4">
                     <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${user.email}`}
+                            src={avatarUrl}
                             alt="Avatar"
-                            className="w-7 h-7 rounded-full bg-[#F3F4F6] border border-[#E0E2E7] shadow-sm"
+                            className="w-7 h-7 rounded-full bg-[#F3F4F6] border border-[#E0E2E7] shadow-sm object-cover"
                         />
-                        <span className="text-sm font-medium" style={{ color: '#1A1D23' }}>{user.email}</span>
+                        <span className="text-sm font-medium" style={{ color: '#1A1D23' }}>{displayName}</span>
                     </div>
                     <form action={signout}>
                         <SubmitButton

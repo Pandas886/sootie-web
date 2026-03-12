@@ -11,7 +11,7 @@ export async function updateSession(request: NextRequest) {
         '/icon',
     ])
 
-    const publicPrefixPaths = ['/login', '/signup', '/landing', '/guides']
+    const publicPrefixPaths = ['/login', '/signup', '/landing', '/guides', '/auth', '/api/wechat', '/api/auth/wechat']
     const isPublicPath =
         publicExactPaths.has(request.nextUrl.pathname) ||
         publicPrefixPaths.some((path) => request.nextUrl.pathname.startsWith(path))
