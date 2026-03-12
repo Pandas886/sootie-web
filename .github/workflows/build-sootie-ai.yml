@@ -108,3 +108,11 @@ jobs:
           files: release/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Latest Installers to Feishu Drive
+        run: node scripts/upload-release-to-feishu.js
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_DRIVE_FOLDER_TOKEN: ${{ secrets.FEISHU_DRIVE_FOLDER_TOKEN }}
+          FEISHU_ARTIFACT_ROOT: release
