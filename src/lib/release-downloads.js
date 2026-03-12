@@ -6,6 +6,13 @@ export function makeModelScopeDownloadUrl(filePath) {
   return `https://modelscope.cn/api/v1/models/${MODELSCOPE_REPO_ID}/repo?Revision=master&FilePath=${encodeURIComponent(filePath)}`;
 }
 
+export function normalizeDownloadPlatform(platform) {
+  if (platform === 'windows') return 'windows';
+  if (platform === 'macos-arm64') return 'macos-arm64';
+  if (platform === 'macos-x64') return 'macos-x64';
+  return 'macos';
+}
+
 export function pickReleaseAsset(platform, assets) {
   if (!Array.isArray(assets) || assets.length === 0) {
     return null;

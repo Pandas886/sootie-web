@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getPlatformLabel, makeModelScopeDownloadUrl, pickReleaseAsset } from './src/lib/release-downloads.js';
+import {
+  getPlatformLabel,
+  makeModelScopeDownloadUrl,
+  normalizeDownloadPlatform,
+  pickReleaseAsset,
+} from './src/lib/release-downloads.js';
 
 test('pickReleaseAsset selects latest windows installer', () => {
   const asset = pickReleaseAsset('windows', [
@@ -51,4 +56,13 @@ test('returns platform label for download CTA copy', () => {
   assert.equal(getPlatformLabel('macos-arm64'), 'macOS Apple Silicon');
   assert.equal(getPlatformLabel('macos-x64'), 'macOS Intel');
   assert.equal(getPlatformLabel('windows'), 'Windows');
+});
+
+test('normalizes download platform from route segment', () => {
+  assert.equal(normalizeDownloadPlatform('windows'), 'windows');
+  assert.equal(normalizeDownloadPlatform('macos-arm64'), 'macos-arm64');
+  assert.equal(normalizeDownloadPlatform('macos-x64'), 'macos-x64');
+  assert.equal(normalizeDownloadPlatform('macos'), 'macos');
+  assert.equal(normalizeDownloadPlatform(undefined), 'macos');
+  assert.equal(normalizeDownloadPlatform('anything-else'), 'macos');
 });
