@@ -6,9 +6,9 @@ export async function GET() {
     const intent = await createWechatLoginIntent();
     return NextResponse.json(intent, { status: 200 });
   } catch (error) {
-    console.error("Failed to create wechat login QR:", error);
+    console.error("Failed to create wechat login code:", error);
     return NextResponse.json(
-      { error: "暂时无法生成公众号登录二维码，请稍后再试。" },
+      { error: "暂时无法生成公众号登录码，请稍后再试。" },
       { status: 500 }
     );
   }

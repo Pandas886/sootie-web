@@ -1,12 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Loader2, QrCode, RefreshCcw } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, CheckCircle2, Copy, Loader2, MessageSquareText, RefreshCcw } from "lucide-react";
 
 type LoginIntent = {
   intentId: string;
   browserNonce: string;
-  qrUrl: string;
+  loginCode: string;
   expiresAt: string;
 };
 
@@ -14,8 +15,7 @@ type LoginStatus =
   | "idle"
   | "loading"
   | "pending"
-  | "scanned"
-  | "verifying"
+  | "approved"
   | "redirecting"
   | "expired"
   | "error";
@@ -24,21 +24,20 @@ export function WechatLoginClient() {
   const [intent, setIntent] = useState<LoginIntent | null>(null);
   const [status, setStatus] = useState<LoginStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [scanConfirmed, setScanConfirmed] = useState(false);
-  const isMountedRef = useRef(true);
+  const [copied, setCopied] = useState(false);
+  const hasExchangedRef = useRef(false);
 
-  async function loadQrCode() {
+  async function loadLoginCode() {
     setStatus("loading");
     setError(null);
-    setVerificationCode("");
-    setScanConfirmed(false);
+    setCopied(false);
+    hasExchangedRef.current = false;
 
     try {
       const response = await fetch("/api/wechat/qr", { cache: "no-store" });
       const payload = (await response.json()) as LoginIntent & { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "暂时无法生成登录二维码");
+        throw new Error(payload.error ?? "暂时无法生成登录码");
       }
 
       setIntent(payload);
@@ -46,53 +45,26 @@ export function WechatLoginClient() {
     } catch (error) {
       setIntent(null);
       setStatus("error");
-      setError(error instanceof Error ? error.message : "暂时无法生成登录二维码");
+      setError(error instanceof Error ? error.message : "暂时无法生成登录码");
     }
   }
 
-  async function handleVerify(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!intent || !verificationCode.trim()) {
-      setError("请输入公众号回复给你的验证码。");
+  async function copyCode() {
+    if (!intent?.loginCode) {
       return;
     }
 
-    setStatus("verifying");
-    setError(null);
-
     try {
-      const response = await fetch("/api/auth/wechat/verify-code", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          intentId: intent.intentId,
-          nonce: intent.browserNonce,
-          verificationCode,
-        }),
-      });
-
-      const payload = (await response.json()) as { redirectTo?: string; error?: string };
-      if (!response.ok || !payload.redirectTo) {
-        throw new Error(payload.error ?? "验证码校验失败");
-      }
-
-      setStatus("redirecting");
-      window.location.assign(payload.redirectTo);
-    } catch (error) {
-      setStatus("scanned");
-      setError(error instanceof Error ? error.message : "验证码校验失败");
+      await navigator.clipboard.writeText(intent.loginCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("复制失败，请手动输入登录码。");
     }
   }
 
   useEffect(() => {
-    isMountedRef.current = true;
-    void loadQrCode();
-
-    return () => {
-      isMountedRef.current = false;
-    };
+    void loadLoginCode();
   }, []);
 
   useEffect(() => {
@@ -111,12 +83,29 @@ export function WechatLoginClient() {
           throw new Error("状态检查失败");
         }
 
-        const payload = (await response.json()) as {
-          status: LoginStatus;
-          hasReplyCode?: boolean;
-        };
+        const payload = (await response.json()) as { status: LoginStatus };
 
-        if (!isMountedRef.current) {
+        if (payload.status === "approved" && !hasExchangedRef.current) {
+          hasExchangedRef.current = true;
+          setStatus("redirecting");
+
+          const exchangeResponse = await fetch("/api/auth/wechat/exchange", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              intentId: intent.intentId,
+              nonce: intent.browserNonce,
+            }),
+          });
+
+          const exchangePayload = (await exchangeResponse.json()) as { redirectTo?: string; error?: string };
+          if (!exchangeResponse.ok || !exchangePayload.redirectTo) {
+            throw new Error(exchangePayload.error ?? "登录兑换失败");
+          }
+
+          window.location.assign(exchangePayload.redirectTo);
           return;
         }
 
@@ -126,19 +115,11 @@ export function WechatLoginClient() {
           return;
         }
 
-        if (payload.status === "scanned" || payload.hasReplyCode) {
-          setScanConfirmed(true);
-          setStatus((current) => (current === "verifying" || current === "redirecting" ? current : "scanned"));
-          return;
-        }
-
-        setStatus((current) => (current === "verifying" || current === "redirecting" ? current : "pending"));
+        setStatus("pending");
       } catch (error) {
         console.error("Failed to poll wechat login status:", error);
-        if (isMountedRef.current) {
-          setStatus("error");
-          setError(error instanceof Error ? error.message : "登录状态检查失败");
-        }
+        setStatus("error");
+        setError(error instanceof Error ? error.message : "登录状态检查失败");
         window.clearInterval(timer);
       }
     }, 2000);
@@ -148,25 +129,62 @@ export function WechatLoginClient() {
 
   const expiresText = useMemo(() => {
     if (!intent?.expiresAt) {
-      return "二维码将在 10 分钟后过期";
+      return "登录码将在 10 分钟后过期";
     }
 
     const expiresAt = new Date(intent.expiresAt);
     return `请在 ${expiresAt.toLocaleTimeString("zh-CN", {
       hour: "2-digit",
       minute: "2-digit",
-    })} 前完成扫码`;
+    })} 前发送到公众号`;
   }, [intent?.expiresAt]);
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-medium" style={{ color: "#1A1D23" }}>
-          扫码关注并接收验证码
+          扫码关注后发送登录码
         </p>
         <p className="text-sm leading-6" style={{ color: "#6B7280" }}>
-          打开微信扫一扫，关注公众号“涂个AI”后，公众号会自动回复网页登录验证码。把验证码填回当前页面即可登录。
+          先用下面的二维码关注公众号“涂个AI”，再把网页登录码发送到公众号，当前页面会自动完成登录。
         </p>
+      </div>
+
+      <div
+        className="rounded-2xl border p-5"
+        style={{
+          borderColor: "#E0E2E7",
+          background: "linear-gradient(180deg, #FFFFFF 0%, #F8F9FB 100%)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{ background: "rgba(196, 147, 74, 0.12)", color: "#a87a3a" }}
+          >
+            <MessageSquareText className="size-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "#1A1D23" }}>
+              先扫码关注公众号
+            </p>
+            <p className="text-xs" style={{ color: "#6B7280" }}>
+              固定公众号二维码，扫码后即可关注
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-center">
+          <div className="rounded-[28px] border bg-white p-4 shadow-sm" style={{ borderColor: "#ECEEF2" }}>
+            <Image
+              src="/wechat-follow-qr.jpg"
+              alt="涂个AI公众号二维码"
+              width={220}
+              height={220}
+              className="h-[220px] w-[220px] rounded-[20px]"
+            />
+          </div>
+        </div>
       </div>
 
       <div
@@ -182,11 +200,11 @@ export function WechatLoginClient() {
               className="flex h-10 w-10 items-center justify-center rounded-xl"
               style={{ background: "rgba(196, 147, 74, 0.12)", color: "#a87a3a" }}
             >
-              <QrCode className="size-5" />
+              <MessageSquareText className="size-5" />
             </div>
             <div>
               <p className="text-sm font-semibold" style={{ color: "#1A1D23" }}>
-                扫这个二维码
+                再发送这串登录码
               </p>
               <p className="text-xs" style={{ color: "#6B7280" }}>
                 {expiresText}
@@ -195,7 +213,7 @@ export function WechatLoginClient() {
           </div>
           <button
             type="button"
-            onClick={() => void loadQrCode()}
+            onClick={() => void loadLoginCode()}
             className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
             style={{
               background: "rgba(196, 147, 74, 0.08)",
@@ -203,76 +221,48 @@ export function WechatLoginClient() {
             }}
           >
             <RefreshCcw className="size-3.5" />
-            刷新二维码
+            刷新登录码
           </button>
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <div className="rounded-[28px] border bg-white p-4 shadow-sm" style={{ borderColor: "#ECEEF2" }}>
-            <div className="flex h-[220px] w-[220px] items-center justify-center rounded-[20px]" style={{ background: "#F7F8FA" }}>
-              {intent?.qrUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={intent.qrUrl} alt="微信登录二维码" className="h-[200px] w-[200px] rounded-2xl" />
+        <div className="mt-6 rounded-[28px] border p-6 shadow-sm" style={{ borderColor: "#ECEEF2", background: "#fff" }}>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.35em]" style={{ color: "#9CA3AF" }}>
+              WeChat Login Code
+            </p>
+            <div className="mt-4 min-h-16 flex items-center justify-center">
+              {intent?.loginCode ? (
+                <p className="text-4xl font-black tracking-[0.28em]" style={{ color: "#1A1D23" }}>
+                  {intent.loginCode}
+                </p>
               ) : (
                 <Loader2 className="size-8 animate-spin" style={{ color: "#a87a3a" }} />
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => void copyCode()}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold"
+              style={{
+                background: copied ? "rgba(34, 197, 94, 0.1)" : "rgba(196, 147, 74, 0.1)",
+                color: copied ? "#15803D" : "#a87a3a",
+              }}
+            >
+              {copied ? <CheckCircle2 className="size-4" /> : <Copy className="size-4" />}
+              {copied ? "已复制" : "复制登录码"}
+            </button>
           </div>
         </div>
-
-        <form onSubmit={handleVerify} className="mt-6 space-y-3">
-          <label className="block text-sm font-medium" style={{ color: "#1A1D23" }}>
-            公众号回复给你的验证码
-          </label>
-          <input
-            value={verificationCode}
-            onChange={(event) => setVerificationCode(event.target.value.toUpperCase())}
-            placeholder={scanConfirmed ? "输入公众号回复的 6 位验证码" : "扫码后等待公众号回复验证码"}
-            className="w-full rounded-xl border px-4 py-3 text-center text-lg font-bold tracking-[0.28em] outline-none"
-            style={{
-              borderColor: scanConfirmed ? "#c4934a" : "#E0E2E7",
-              background: scanConfirmed ? "#fffaf2" : "#F3F4F6",
-              color: "#1A1D23",
-            }}
-            maxLength={6}
-          />
-          <button
-            type="submit"
-            disabled={!scanConfirmed || status === "verifying" || status === "redirecting"}
-            className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all duration-200"
-            style={{
-              background:
-                !scanConfirmed || status === "verifying" || status === "redirecting"
-                  ? "#D1D5DB"
-                  : "linear-gradient(135deg, #c4934a, #a87a3a)",
-            }}
-          >
-            {status === "verifying" ? "校验中…" : "验证并登录"}
-          </button>
-        </form>
 
         <div className="mt-5 rounded-2xl px-4 py-3 text-sm" style={{ background: "#F3F4F6", color: "#4B5563" }}>
           <div className="font-medium" style={{ color: "#1A1D23" }}>
             使用方式
           </div>
-          <p className="mt-2">1. 微信扫码并关注公众号“涂个AI”</p>
-          <p className="mt-1">2. 公众号会自动回复 6 位网页登录验证码</p>
-          <p className="mt-1">3. 把验证码填回这里完成登录</p>
+          <p className="mt-2">1. 用上面的二维码先关注公众号“涂个AI”</p>
+          <p className="mt-1">2. 把这里的 6 位登录码发送到公众号聊天框</p>
+          <p className="mt-1">3. 当前页面会自动完成登录</p>
         </div>
       </div>
-
-      {scanConfirmed && status !== "redirecting" && (
-        <div
-          className="rounded-xl px-4 py-3 text-sm font-medium"
-          style={{
-            background: "rgba(59, 130, 246, 0.08)",
-            color: "#2563EB",
-            border: "1px solid rgba(59, 130, 246, 0.16)",
-          }}
-        >
-          扫码已确认，请查看公众号回复并输入验证码。
-        </div>
-      )}
 
       {status === "redirecting" && (
         <div
@@ -283,7 +273,7 @@ export function WechatLoginClient() {
             border: "1px solid rgba(196, 147, 74, 0.2)",
           }}
         >
-          验证成功，正在完成登录…
+          已收到公众号确认，正在完成登录…
         </div>
       )}
 
@@ -296,7 +286,7 @@ export function WechatLoginClient() {
             border: "1px solid rgba(239, 68, 68, 0.15)",
           }}
         >
-          二维码已过期，请刷新后重新扫码。
+          登录码已过期，请刷新后重新发送。
         </div>
       )}
 
@@ -314,7 +304,7 @@ export function WechatLoginClient() {
       )}
 
       <div className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "#c4934a" }}>
-        扫码后公众号会回一个网页登录验证码
+        发送后当前页面会自动轮询并跳转到控制台
         <ArrowRight className="size-4" />
       </div>
     </div>
