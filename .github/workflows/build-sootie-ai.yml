@@ -109,10 +109,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Latest Installers to Feishu Drive
-        run: node scripts/upload-release-to-feishu.js
+      - name: Upload Installers to GitCode Release
+        run: node scripts/upload-release-to-gitcode.js
         env:
-          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
-          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
-          FEISHU_DRIVE_FOLDER_TOKEN: ${{ secrets.FEISHU_DRIVE_FOLDER_TOKEN }}
-          FEISHU_ARTIFACT_ROOT: release
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+          GITCODE_REPO_OWNER: ${{ secrets.GITCODE_REPO_OWNER }}
+          GITCODE_REPO_NAME: ${{ secrets.GITCODE_REPO_NAME }}
+          GITCODE_RELEASE_TAG: ${{ needs.init.outputs.release_tag }}
+          GITCODE_RELEASE_NAME: SootieAI Release ${{ needs.init.outputs.release_tag }}
+          GITCODE_TARGET_COMMITISH: main
+          GITCODE_ARTIFACT_ROOT: release

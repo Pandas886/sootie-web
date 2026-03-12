@@ -150,13 +150,13 @@ export default function LandingPage() {
                         </div>
 
                         <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
-                            <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
+                            <a href="/download/macos">
                                 <Button size="lg" className="bg-brand hover:bg-brand-hover text-primary-foreground rounded-full h-14 px-8 text-base shadow-sm w-full sm:w-auto">
                                     <Download className="mr-2 w-5 h-5" />
                                     下载 macOS 版
                                 </Button>
                             </a>
-                            <a href="https://github.com/Pandas886/sootie-web/releases/latest" target="_blank" rel="noopener noreferrer">
+                            <a href="/download/windows">
                                 <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-border hover:bg-secondary w-full sm:w-auto">
                                     <Monitor className="mr-2 w-5 h-5" />
                                     下载 Windows 版
