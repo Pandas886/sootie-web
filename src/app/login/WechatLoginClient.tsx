@@ -88,6 +88,7 @@ export function WechatLoginClient() {
 
         if (payload.status === "approved" && !hasExchangedRef.current) {
           hasExchangedRef.current = true;
+          window.clearInterval(timer);
           setStatus("approved");
 
           await new Promise((resolve) => {
@@ -117,6 +118,10 @@ export function WechatLoginClient() {
           });
 
           window.location.assign(exchangePayload.redirectTo);
+          return;
+        }
+
+        if (hasExchangedRef.current) {
           return;
         }
 
